@@ -1,0 +1,63 @@
+import requests
+import os
+# Register to get an API key https://developer.edamam.com/edamam-recipe-api
+api_id = os.environ.get("edamam_api_id")
+api_key = os.environ.get("edamam_api_key")
+
+def require_user_data():
+    ingredient = input("Hello! What ingredients do you want to cook? ").lower()
+    rqmnt_yn = input("Do you have any dietary requirements? y/n  ")
+    while rqmnt_yn != "y" and rqmnt_yn != "n":
+        rqmnt_yn = input("Please enter only 'y' or 'n' ")
+    if rqmnt_yn == "y":
+        health, diet = get_health_diet()
+    elif rqmnt_yn == "n":
+        health = ""
+        diet = ""
+    return ingredient, health, diet
+
+def get_health_diet():
+    user_health = input("Please enter your requirement: vegan,  vegetarian, sugar-conscious, peanut-free, tree-nut-free or alcohol-free  ")
+    health = user_health.lower()
+    user_diet = input("What diet type are you following?  balanced, high-protein, low-carb, low-fat   ")
+    diet = user_diet.lower()
+    return health, diet
+
+def get_recipes(ingredient, health, diet):
+    result = requests.get('https://api.edamam.com/search?q={}&Health={}&Diet={}&app_id={}&app_key={}'.format(ingredient, health, diet, api_id, api_key))
+    data = result.json()
+    return data['hits']
+
+def print_recipes(recipe_list):
+    i = 0
+    for recipe in recipe_list:
+        i = i +1
+        print(i, recipe['recipe']['label'])
+        print(recipe['recipe']['url'])
+        print()
+
+# assumes recipe_name is unique in recipes_list
+def get_recipe_by_name(recipes_list, recipe_name):
+    for recipe in recipes_list:
+        if recipe_name == recipe['recipe']['label']:
+            recipe_to_return = recipe
+    return recipe_to_return
+
+def export_results(recipes_list):
+    ask_export = input("Would you like to export one? y/n   ")
+    if ask_export == "y":
+        my_file = open("my_recipes.txt","w+")
+        with open("my_recipes.txt","w+") as my_file:
+            recipe_name = input("Which recipe do you want to add? (Just write the name)   ")
+            recipe = get_recipe_by_name(recipes_list,recipe_name)
+            my_file.write(recipe['recipe']['label']+"\n"+recipe['recipe']['url'])
+    elif ask_export == "n":
+        print("All right, good luck with your cooking!")
+
+def run():
+    ingredient, health, diet = require_user_data()
+    recipes = get_recipes(ingredient, health, diet)
+    print_recipes(recipes)
+    export_results(recipes)
+
+run()
